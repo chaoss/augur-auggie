@@ -20,7 +20,7 @@ async function getUser(slackClient, event) {
     var params = {
         TableName: process.env.TABLE_NAME,
         Key: {
-            "email": userResponse.user.profile.email
+            "email": `${userResponse.user.profile.email}:${teamID}`
         }
     };
 
