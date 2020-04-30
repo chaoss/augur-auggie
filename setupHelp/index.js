@@ -48,7 +48,7 @@ function buildResponse(message) {
 
 exports.handler = async (event) => {
     let slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
-    console.log(event['requestAttributes'])
+
     let user = await getUser(slackClient, event);
 
     if (user.dialogAction) {
@@ -58,17 +58,9 @@ exports.handler = async (event) => {
         let message = ``;
 
         if (!host) {
-            return buildResponse(`Looks like you're not tracking any repositories yet. You can add repositories at augur.osshealth.io/slack-setup`)
+            return buildResponse(`Need to get setup? Head over to augur.osshealth.io/slack-setup to get started!`)
         }
-
-        for (repo of user.interestedRepos) {
-            message += `${repo}\n`
-        }
-
-        if (message === "") {
-            return buildResponse(`Looks like you're not tracking any repositories yet. You can add repositories at ${user.host}/slack-setup`)
-        }
-
-        return buildResponse(`Your current tracked repos are: \n${message} These can be updated at ${user.host}/slack-setup`)
+        
+        return buildResponse(`Need to get setup? Head over to ${user.host}/slack-setup to get started!`)
     }
 };
