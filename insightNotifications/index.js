@@ -170,7 +170,7 @@ exports.handler = async (event) => {
                     await slackClient.chat.postMessage({
                         channel: channelResponse.channel.id,
                         thread_ts: messageResponse.ts,
-                        text: "*New Augur Insight* \n\n" + message
+                        text: message
                     });
 
                 } else {
@@ -178,7 +178,7 @@ exports.handler = async (event) => {
                     await slackClient.chat.postMessage({
                         channel: channelResponse.channel.id,
                         thread_ts: user.thread,
-                        text: "*New Augur Insight* \n\n" + message
+                        text: message
                     });
                 }
 
