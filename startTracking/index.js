@@ -9,6 +9,7 @@ AWS.config.update({
 });
 let docClient = new AWS.DynamoDB.DocumentClient();
 
+
 async function getUser(slackClient, event) {
 
     let lexID = event['userId'].split(':');
@@ -63,19 +64,11 @@ async function updateBotToken(user, token) {
 }
 
 exports.handler = async (event) => {
+    console.log(event);
     let slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
-
-    let user = await getUser(slackClient, event);    
+    console.log(event['requestAttributes'])
+    let user = await getUser(slackClient, event);
     await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
-    
-    if (user.dialogAction) {
-        return user;
-    } else {
-        if (!user.host || user.host == "null") {
-            return buildResponse(`Looks like you currently don't have a host. This can be updated at the configuration site.`)
-        } else {
-            return buildResponse(`Your current host is ${user.host}. This can be updated at ${user.host}/slack-setup`)
-        }
-    }
+    return buildResponse(`You are now tracking repositories!`);
 };

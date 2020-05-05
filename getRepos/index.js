@@ -29,7 +29,8 @@ async function getUser(slackClient, event) {
     if (response.Item) {
         return response.Item
     } else {
-        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to TEMP augur.osshealth.io TEMP to get started!")
+        return buildResponse(`Looks like you haven't setup your account yet. Head back to the configure site to make sure you're all setup.`);
+        
     }
 }
 
@@ -46,10 +47,28 @@ function buildResponse(message) {
     };
 }
 
+async function updateBotToken(user, token) {
+    let params = {
+        TableName: process.env.TABLE_NAME,
+        Key: {
+            "email": user.email
+        },
+        UpdateExpression: "set botToken = :val",
+        ExpressionAttributeValues: {
+            ":val": token
+        }
+    }
+
+    await docClient.update(params).promise();
+}
+
 exports.handler = async (event) => {
+    console.log(event);
     let slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
     console.log(event['requestAttributes'])
     let user = await getUser(slackClient, event);
+    await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
+
 
     if (user.dialogAction) {
         return user;
@@ -57,9 +76,9 @@ exports.handler = async (event) => {
         let host = user.host;
         let message = ``;
 
-        if (!host) {
-            return buildResponse(`Looks like you're not tracking any repositories yet. You can add repositories at augur.osshealth.io/slack-setup`)
-        }
+        if (!host || host == "null") {
+            return buildResponse(`Looks like you haven't setup your host yet. Head back to the configure site to make sure you're all setup.`);
+        } 
 
         for (repo of user.interestedRepos) {
             message += `${repo}\n`

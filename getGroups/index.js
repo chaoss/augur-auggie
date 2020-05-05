@@ -46,10 +46,27 @@ function buildResponse(message) {
     };
 }
 
+async function updateBotToken(user, token) {
+    let params = {
+        TableName: process.env.TABLE_NAME,
+        Key: {
+            "email": user.email
+        },
+        UpdateExpression: "set botToken = :val",
+        ExpressionAttributeValues: {
+            ":val": token
+        }
+    }
+
+    await docClient.update(params).promise();
+}
+
 exports.handler = async (event) => {
+    console.log(event);
     let slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
     let user = await getUser(slackClient, event);
+    await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
     if (user.dialogAction) {
         return user;
@@ -57,7 +74,7 @@ exports.handler = async (event) => {
         let host = user.host;
         let message = ``;
 
-        if (!host) {
+        if (!host || user.host == "null") {
             return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at augur.osshealth.io/slack-setup`)
         }
 
@@ -66,7 +83,7 @@ exports.handler = async (event) => {
         }
 
         if (message === "") {
-            return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at ${user.host}/slack-setup`)
+            return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at ${user.host}/configure`);
         }
 
         return buildResponse(`Your current tracked repo groups are: \n${message} These can be updated at ${user.host}/slack-setup`)

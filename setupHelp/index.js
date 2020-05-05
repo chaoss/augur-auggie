@@ -26,11 +26,7 @@ async function getUser(slackClient, event) {
 
     let response = await docClient.get(params).promise();
 
-    if (response.Item) {
-        return response.Item
-    } else {
-        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to TEMP augur.osshealth.io TEMP to get started!")
-    }
+    return response;
 }
 
 function buildResponse(message) {
@@ -46,21 +42,38 @@ function buildResponse(message) {
     };
 }
 
+async function updateBotToken(user, token) {
+    let params = {
+        TableName: process.env.TABLE_NAME,
+        Key: {
+            "email": user.email
+        },
+        UpdateExpression: "set botToken = :val",
+        ExpressionAttributeValues: {
+            ":val": token
+        }
+    }
+
+    await docClient.update(params).promise();
+}
+
 exports.handler = async (event) => {
     let slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
-    let user = await getUser(slackClient, event);
+    let response = await getUser(slackClient, event);    
+    await updateBotToken(response, event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
-    if (user.dialogAction) {
-        return user;
-    } else {
+
+    if (response.Item) {
+        let user = response.Item;
         let host = user.host;
-        let message = ``;
 
-        if (!host) {
+        if (!host || host == "null" ) {
             return buildResponse(`Need to get setup? Head over to augur.osshealth.io/slack-setup to get started!`)
         }
-        
-        return buildResponse(`Need to get setup? Head over to ${user.host}/slack-setup to get started!`)
+
+        return buildResponse(`Need to get setup? Head over to ${host}/slack-setup to get started!`)
+    } else {
+        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to the configuration site to get started!")
     }
 };

@@ -181,11 +181,6 @@ exports.handler = async (event) => {
                         text: message
                     });
                 }
-
-
-                
-                
-
             }
         }
     }
