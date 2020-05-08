@@ -5,6 +5,8 @@ getHost/uploadCommand.sh
 getRepos/uploadCommand.sh
 insightNotifications/uploadCommand.sh
 setupHelp/uploadCommand.sh
+startTracking/uploadCommand.sh
+
 *.zip
 *.zip.icloud
 
