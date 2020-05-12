@@ -59,7 +59,7 @@ function constructSentence(event) {
 }
 
 async function checkIfInterested(user, event) {
-    return true;
+    // return true;
 
     let interestedRepos = user.interestedRepoGroups;
     let interestedRepoGroups = user.interestedGroups;
