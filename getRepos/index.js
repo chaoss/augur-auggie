@@ -77,7 +77,7 @@ exports.handler = async (event) => {
         let message = ``;
 
         if (!host || host == "null") {
-            return buildResponse(`Looks like you haven't setup your host yet. Head back to the configure site to make sure you're all setup.`);
+            return buildResponse(`Looks like you haven't setup your host yet. Head back to auggie.augurlabs.io to make sure you're all setup.`);
         } 
 
         for (repo of user.interestedRepos) {
@@ -85,9 +85,9 @@ exports.handler = async (event) => {
         }
 
         if (message === "") {
-            return buildResponse(`Looks like you're not tracking any repositories yet. You can add repositories at ${user.host}/slack-setup`)
+            return buildResponse(`Looks like you're not tracking any repositories yet. You can add repositories at auggie.augurlabs.io`)
         }
 
-        return buildResponse(`Your current tracked repos are: \n${message} These can be updated at ${user.host}/slack-setup`)
+        return buildResponse(`Your current tracked repos are: \n${message} These can be updated at auggie.augurlabs.io`)
     }
 };

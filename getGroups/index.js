@@ -75,7 +75,7 @@ exports.handler = async (event) => {
         let message = ``;
 
         if (!host || user.host == "null") {
-            return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at augur.osshealth.io/slack-setup`)
+            return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at auggie.augurlabs.io`)
         }
 
         for (group of user.interestedGroups) {
@@ -83,9 +83,9 @@ exports.handler = async (event) => {
         }
 
         if (message === "") {
-            return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at ${user.host}/configure`);
+            return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at auggie.augurlabs.io`);
         }
 
-        return buildResponse(`Your current tracked repo groups are: \n${message} These can be updated at ${user.host}/slack-setup`)
+        return buildResponse(`Your current tracked repo groups are: \n${message} These can be updated at auggie.augurlabs.io`)
     }
 };

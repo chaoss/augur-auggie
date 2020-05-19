@@ -73,9 +73,9 @@ exports.handler = async (event) => {
         return user;
     } else {
         if (!user.host || user.host == "null") {
-            return buildResponse(`Looks like you currently don't have a host. This can be updated at the configuration site.`)
+            return buildResponse(`Looks like you currently don't have a host. This can be updated at auggie.augurlabs.io.`)
         } else {
-            return buildResponse(`Your current host is ${user.host}. This can be updated at ${user.host}/slack-setup`)
+            return buildResponse(`Your current host is ${user.host}. This can be updated at auggie.augurlabs.io`)
         }
     }
 };

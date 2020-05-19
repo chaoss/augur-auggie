@@ -1,0 +1,15 @@
+{
+  "name": "sendnotifications",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@slack/web-api": "^5.8.1",
+    "aws-sdk": "^2.678.0"
+  }
+}

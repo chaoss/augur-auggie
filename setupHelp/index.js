@@ -69,11 +69,11 @@ exports.handler = async (event) => {
         let host = user.host;
 
         if (!host || host == "null" ) {
-            return buildResponse(`Need to get setup? Head over to augur.osshealth.io/slack-setup to get started!`)
+            return buildResponse(`Need to get setup? Head over to auggie.augurlabs.io to get started!`)
         }
 
-        return buildResponse(`Need to get setup? Head over to ${host}/slack-setup to get started!`)
+        return buildResponse(`Need to get setup? Head over to auggie.augurlabs.io to get started!`)
     } else {
-        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to the configuration site to get started!")
+        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to auggie.augurlabs.io to get started!")
     }
 };
