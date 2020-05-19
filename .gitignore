@@ -3,7 +3,7 @@ fullUpload.sh
 getGroups/uploadCommand.sh
 getHost/uploadCommand.sh
 getRepos/uploadCommand.sh
-insightNotifications/uploadCommand.sh
+handleQueue/uploadCommand.sh
 setupHelp/uploadCommand.sh
 startTracking/uploadCommand.sh
 sendNotifications/uploadCommand.sh
