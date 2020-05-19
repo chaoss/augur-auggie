@@ -36,9 +36,7 @@ async function getToken(teamID) {
 
 
 exports.handler = async (event) => {
-
     console.log(event);
-
     const slackEvent = event.event;
 
     const token = await getToken(event["team_id"]);

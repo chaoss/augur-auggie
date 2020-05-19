@@ -7,6 +7,8 @@ handleQueue/uploadCommand.sh
 setupHelp/uploadCommand.sh
 startTracking/uploadCommand.sh
 sendNotifications/uploadCommand.sh
+eventForwarder/uploadCommand.sh
+reactionHandler/uploadCommand.sh
 
 *.zip
 *.zip.icloud
