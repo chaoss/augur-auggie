@@ -8,6 +8,7 @@ AWS.config.update({
     endpoint: (process.env.ENVIRONMENT === "DEV") ? "http://localhost:8000" : null
 });
 let docClient = new AWS.DynamoDB.DocumentClient();
+var lambda = new AWS.Lambda();
 
 
 async function getAllUsers() {
@@ -73,10 +74,21 @@ async function writeEvent(event) {
     console.log(result);
 }
 
+async function triggerPosts() {
+    var params = {
+        FunctionName: 'auggie-post-insights',
+        Payload: JSON.stringify(event)
+    };
+
+    let lambdaResponse = await lambda.invoke(params).promise();
+    console.log(lambdaResponse);
+}
+
 exports.handler = async (event) => {
 
     if (event.source == "aws.events") {
         await clearUserSettings();
+        await triggerPosts();
         return;
     }
 

@@ -85,7 +85,7 @@ async function checkIfInterested(user, insights) {
         let interestedRepoGroups = user.interestedGroups;
         let interestedInsightTypes = user.interestedInsightTypes;
         
-        if (interestedRepos.includes(`https://${insight.repo_git}`) /*|| interestedRepoGroups.includes(insight.rg_name)*/) {
+        if (interestedRepos.includes(`${insight.repo_git.substr(8)}`) /*|| interestedRepoGroups.includes(insight.rg_name)*/) {
             if (interestedInsightTypes && interestedInsightTypes.includes(insight.metric)) {
                 console.log(`Interested Repos (${interestedRepos}) contains ${insight.repo_git}\nOR\nInterested RepoGroups (${interestedRepoGroups}) contains ${insight.rg_name}`);
                 interestedInsights.push(insight);
@@ -126,19 +126,29 @@ async function updateThread(user, thread) {
     await docClient.update(params).promise();
 }
 
-async function emptyQueue() {
+async function storeMessage(insight, teamID, ts, channel) {
+    let params = {
+        TableName: process.env.MESSAGES_TABLE_NAME,
+        Item: {
+            "ts": ts,
+            "teamID": teamID,
+            "insight": insight,
+            "channel": channel,
+            "reactions": []
+        }
+    }
 
+    const result = await docClient.put(params).promise()
+    console.log(result);
 }
 
+function compare(a, b) {
+    return a.units_from_mean - b.units_from_mean;
+}
 
 
 exports.handler = async (event) => {
     console.log(JSON.stringify(event));
-
-    // if (event.source == "aws.events") {
-    //     await clearUserSettings();
-    //     return;
-    // }
 
     let users = await getAllUsers();
     console.log(`users from getAllUsers: ${JSON.stringify(users)}`);
@@ -149,7 +159,9 @@ exports.handler = async (event) => {
 
     for (user of users) {
         let interestedInsights = await checkIfInterested(user, insights);
+        interestedInsights.sort(compare)
         interestedInsights = interestedInsights.slice(0, user.maxMessages - user.currentMessages);
+
 
         let userThread;
         let first = true;
@@ -177,18 +189,20 @@ exports.handler = async (event) => {
                 userThread = messageResponse.ts;
 
                 console.log("Creating Thread Level Notification")
-                await slackClient.chat.postMessage({
+                let threadResponse = await slackClient.chat.postMessage({
                     channel: channelResponse.channel.id,
                     thread_ts: messageResponse.ts,
                     text: message
                 });
+                await storeMessage(insight, threadResponse.message.team, threadResponse.ts, channelResponse.channel.id);
             } else {
                 console.log("Creating Thread Level Notification")
-                await slackClient.chat.postMessage({
+                let threadResponse = await slackClient.chat.postMessage({
                     channel: channelResponse.channel.id,
                     thread_ts: userThread,
                     text: message
                 });
+                await storeMessage(insight, threadResponse.message.team, threadResponse.ts, channelResponse.channel.id);
             }
         }
     }
