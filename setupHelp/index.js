@@ -9,8 +9,10 @@ AWS.config.update({
 });
 let docClient = new AWS.DynamoDB.DocumentClient();
 
-async function getUser(slackClient, event) {
+const ERROR_RESPONSE = "Oops, looks like you haven't setup your account yet. Head on over to auggie.augurlabs.io to get started!";
+const POSITIVE_RESPONSE = `Need to get setup? Head over to auggie.augurlabs.io to get started!`;
 
+async function getUser(slackClient, event) {
     let lexID = event['userId'].split(':');
     let teamID = lexID[1];
     let userID = lexID[2];
@@ -18,7 +20,7 @@ async function getUser(slackClient, event) {
     let userResponse = await slackClient.users.info({ "user": userID })
 
     var params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": `${userResponse.user.profile.email}:${teamID}`
         }
@@ -44,7 +46,7 @@ function buildResponse(message) {
 
 async function updateBotToken(user, token) {
     let params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": user.email
         },
@@ -60,20 +62,19 @@ async function updateBotToken(user, token) {
 exports.handler = async (event) => {
     let slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
-    let response = await getUser(slackClient, event);    
-    await updateBotToken(response, event['requestAttributes']['x-amz-lex:slack-bot-token']);
+    const userResponse = await getUser(slackClient, event);  
+    if (userResponse.Item) {
+        const user = userResponse.Item
+        await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
-
-    if (response.Item) {
-        let user = response.Item;
-        let host = user.host;
+        const host = user.host;
 
         if (!host || host == "null" ) {
-            return buildResponse(`Need to get setup? Head over to auggie.augurlabs.io to get started!`)
+            return buildResponse(POSITIVE_RESPONSE)
         }
 
-        return buildResponse(`Need to get setup? Head over to auggie.augurlabs.io to get started!`)
+        return buildResponse(POSITIVE_RESPONSE)
     } else {
-        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to auggie.augurlabs.io to get started!")
+        return buildResponse(ERROR_RESPONSE);
     }
 };

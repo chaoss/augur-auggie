@@ -126,7 +126,7 @@ async function updateThread(user, thread) {
     await docClient.update(params).promise();
 }
 
-async function storeMessage(insight, teamID, ts, channel) {
+async function storeMessage(insight, teamID, ts, channel, message) {
     let params = {
         TableName: process.env.MESSAGES_TABLE_NAME,
         Item: {
@@ -134,7 +134,9 @@ async function storeMessage(insight, teamID, ts, channel) {
             "teamID": teamID,
             "insight": insight,
             "channel": channel,
-            "reactions": []
+            "reactions": [],
+            "message": message,
+            "isSlackTS": true
         }
     }
 
@@ -194,7 +196,7 @@ exports.handler = async (event) => {
                     thread_ts: messageResponse.ts,
                     text: message
                 });
-                await storeMessage(insight, threadResponse.message.team, threadResponse.ts, channelResponse.channel.id);
+                await storeMessage(insight, threadResponse.message.team, threadResponse.ts, channelResponse.channel.id, messsage);
             } else {
                 console.log("Creating Thread Level Notification")
                 let threadResponse = await slackClient.chat.postMessage({
@@ -202,7 +204,7 @@ exports.handler = async (event) => {
                     thread_ts: userThread,
                     text: message
                 });
-                await storeMessage(insight, threadResponse.message.team, threadResponse.ts, channelResponse.channel.id);
+                await storeMessage(insight, threadResponse.message.team, threadResponse.ts, channelResponse.channel.id, message);
             }
         }
     }

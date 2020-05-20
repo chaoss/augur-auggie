@@ -9,6 +9,8 @@ AWS.config.update({
 });
 let docClient = new AWS.DynamoDB.DocumentClient();
 
+const ERROR_RESPONSE = `Looks like you currently don't have a host. This can be updated at auggie.augurlabs.io.`;
+
 async function getUser(slackClient, event) {
 
     let lexID = event['userId'].split(':');
@@ -18,7 +20,7 @@ async function getUser(slackClient, event) {
     let userResponse = await slackClient.users.info({ "user": userID })
 
     var params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": `${userResponse.user.profile.email}:${teamID}`
         }
@@ -29,7 +31,7 @@ async function getUser(slackClient, event) {
     if (response.Item) {
         return response.Item
     } else {
-        return buildResponse(`Looks like you haven't setup your account yet. Head back to the configure site to make sure you're all setup.`);
+        return buildResponse(`Looks like you haven't setup your account yet. Head back to the auggie.augurlabs.io to make sure you're all setup.`);
         
     }
 }
@@ -49,7 +51,7 @@ function buildResponse(message) {
 
 async function updateBotToken(user, token) {
     let params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": user.email
         },
@@ -67,15 +69,15 @@ exports.handler = async (event) => {
 
     let user = await getUser(slackClient, event);    
     await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
-
     
     if (user.dialogAction) {
         return user;
     } else {
         if (!user.host || user.host == "null") {
-            return buildResponse(`Looks like you currently don't have a host. This can be updated at auggie.augurlabs.io.`)
+            return buildResponse(ERROR_RESPONSE);
         } else {
-            return buildResponse(`Your current host is ${user.host}. This can be updated at auggie.augurlabs.io`)
+            const fullMessage = `Your current host is ${user.host}. This can be updated at auggie.augurlabs.io`;
+            return buildResponse(fullMessage);
         }
     }
 };

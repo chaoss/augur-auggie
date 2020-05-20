@@ -51,6 +51,34 @@ async function addReaction(teamID, ts, reaction) {
     await docClient.update(params).promise();
 }
 
+async function storeMessage(insight, teamID, ts, channel, reaction, message) {
+    console.log("storing message");
+    let params = {
+        TableName: process.env.MESSAGES_TABLE_NAME,
+        Key: {
+            "teamID": teamID,
+            "ts": ts
+        },
+        UpdateExpression: 'SET #attr1 = :val1, #attr2 = :val2, #attr3 = :val3, #attr4 = list_append(if_not_exists(#attr4, :empty_list), :val4) ',
+        ExpressionAttributeNames: {
+            "#attr1": "insight",
+            "#attr2": "channel",
+            "#attr3": "message",
+            "#attr4": "reactions",
+        },
+        ExpressionAttributeValues: {
+            ":val1": insight,
+            ":val2": channel,
+            ":val3": message,
+            ":val4": [reaction],
+            ":empty_list": [],
+        }
+    }
+
+    const result = await docClient.update(params).promise()
+    console.log(result);
+}
+
 
 exports.handler = async (event) => {
     console.log(event);
@@ -73,7 +101,8 @@ exports.handler = async (event) => {
     }
 
     if (!reactedMessage.text.startsWith("There were ")) {
-        console.log("Reacted Message was not relevant message from Auggie.");
+        console.log("Not Insight Message, creating new object.")
+        await storeMessage({}, event["team_id"], slackEvent.item.ts, slackEvent.item.channel, slackEvent.reaction, reactedMessage.text );
         return;
     }
 

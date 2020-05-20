@@ -9,6 +9,8 @@ AWS.config.update({
 });
 let docClient = new AWS.DynamoDB.DocumentClient();
 
+const ERROR_RESPONSE = `Looks like you're not tracking any repo groups yet. You can add some at auggie.augurlabs.io`;
+
 async function getUser(slackClient, event) {
 
     let lexID = event['userId'].split(':');
@@ -18,7 +20,7 @@ async function getUser(slackClient, event) {
     let userResponse = await slackClient.users.info({ "user": userID })
 
     var params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": `${userResponse.user.profile.email}:${teamID}`
         }
@@ -29,7 +31,7 @@ async function getUser(slackClient, event) {
     if (response.Item) {
         return response.Item
     } else {
-        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to TEMP augur.osshealth.io/slack-setup TEMP to get started!")
+        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to auggie.augurlabs.io to get started!")
     }
 }
 
@@ -48,7 +50,7 @@ function buildResponse(message) {
 
 async function updateBotToken(user, token) {
     let params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": user.email
         },
@@ -74,8 +76,8 @@ exports.handler = async (event) => {
         let host = user.host;
         let message = ``;
 
-        if (!host || user.host == "null") {
-            return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at auggie.augurlabs.io`)
+        if (!host || user.host == "null") {        
+            return buildResponse(ERROR_RESPONSE)
         }
 
         for (group of user.interestedGroups) {
@@ -83,9 +85,10 @@ exports.handler = async (event) => {
         }
 
         if (message === "") {
-            return buildResponse(`Looks like you're not tracking any repo groups yet. You can add some at auggie.augurlabs.io`);
+            return buildResponse(ERROR_RESPONSE);
         }
 
-        return buildResponse(`Your current tracked repo groups are: \n${message} These can be updated at auggie.augurlabs.io`)
+        const fullMessage = `Your current tracked repo groups are: \n${message} These can be updated at auggie.augurlabs.io`;
+        return buildResponse(fullMessage);
     }
 };

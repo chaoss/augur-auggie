@@ -19,7 +19,7 @@ async function getUser(slackClient, event) {
     let userResponse = await slackClient.users.info({ "user": userID })
 
     var params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": `${userResponse.user.profile.email}:${teamID}`
         }
@@ -50,7 +50,7 @@ function buildResponse(message) {
 
 async function updateBotToken(user, token) {
     let params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": user.email
         },
@@ -70,5 +70,6 @@ exports.handler = async (event) => {
     let user = await getUser(slackClient, event);
     await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
-    return buildResponse(`You are now tracking repositories!`);
+    const fullMessage = `You are now tracking repositories!`;
+    return buildResponse(fullMessage);
 };
