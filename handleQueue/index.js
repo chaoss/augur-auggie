@@ -2,18 +2,18 @@ const {
     WebClient
 } = require('@slack/web-api');
 
-var AWS = require("aws-sdk");
+const AWS = require("aws-sdk");
 AWS.config.update({
     region: "us-east-1",
     endpoint: (process.env.ENVIRONMENT === "DEV") ? "http://localhost:8000" : null
 });
-let docClient = new AWS.DynamoDB.DocumentClient();
-var lambda = new AWS.Lambda();
+const docClient = new AWS.DynamoDB.DocumentClient();
+const lambda = new AWS.Lambda();
 
 
 async function getAllUsers() {
     let users = [];
-    let params = { TableName: process.env.USERS_TABLE_NAME };
+    let params = { TableName: process.env.TABLE_NAME };
 
     while (true) {
         let response = await docClient.scan(params).promise();
@@ -30,7 +30,7 @@ async function getAllUsers() {
 }
 
 async function clearUserSettings() {
-    let users = await getAllUsers();
+    const users = await getAllUsers();
 
     for (user of users) {
         let params = {
@@ -55,7 +55,7 @@ async function writeEvent(event) {
     const secondsSinceEpoch = Math.round(Date.now() / 1000);
     const expirationTime = secondsSinceEpoch + 24 * SECONDS_IN_AN_HOUR;
 
-    let params = {
+    const params = {
         TableName: process.env.TABLE_NAME,
         Item: {
             "repo_git": event.repo_git,
@@ -75,26 +75,29 @@ async function writeEvent(event) {
 }
 
 async function triggerPosts() {
-    var params = {
+    const params = {
         FunctionName: 'auggie-post-insights',
         Payload: JSON.stringify(event)
     };
 
-    let lambdaResponse = await lambda.invoke(params).promise();
+    const lambdaResponse = await lambda.invoke(params).promise();
     console.log(lambdaResponse);
 }
 
 exports.handler = async (event) => {
 
     if (event.source == "aws.events") {
+        console.log("Clearing User Settings");
         await clearUserSettings();
+        console.log("Triggering New Notifications");
         await triggerPosts();
-        return;
+    } else {
+        console.log("Insight Event Received");
+        console.log(JSON.stringify(event));
+        await writeEvent(event);
+        return {statusCode: 200, body: "Insight Event successfully added to Queue"}
     }
 
-    console.log("Insight Event Received");
-    console.log(JSON.stringify(event));
-
-    await writeEvent(event);
+    
 };
 

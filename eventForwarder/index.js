@@ -1,40 +1,40 @@
-var rp = require('request-promise');
-var AWS = require('aws-sdk');
+const rp = require('request-promise');
+const AWS = require('aws-sdk');
 
-var lambda = new AWS.Lambda();
+const lambda = new AWS.Lambda();
 
 exports.handler = async (event) => {
+    console.log("Received Event - Proceeding to Forward")
     console.log(event);
 
     const lexPostbackUrl = process.env.LEX_POSTBACK_URL;
-
     
 
     if (event.type == "url_verification") {
-
-        var options = {
+        // Slack Verification: Forward to Lex,
+        // await response to return to Slack
+        const options = {
             uri: lexPostbackUrl,
             method: 'POST',
             json: true,
             body: event
         };
 
-        let response = await rp(options);
-        console.log(response);
+        const response = await rp(options);
 
         return response;
     } else if (event.event.type == "message") {
-        var options = {
+        // Slack Message: Forward to Lex for handling.
+        const options = {
             uri: lexPostbackUrl,
             method: 'POST',
             json: true,
             body: event
         };
 
-        let response = await rp(options);
-        console.log(response);
+        await rp(options);
     } else if (event.event.type == "reaction_added") {
-        console.log("Reaction Added");
+        // Reaction Added: Forward to Reaction Handler
 
         var params = {
             FunctionName: 'auggie-reaction-handler',
@@ -43,6 +43,12 @@ exports.handler = async (event) => {
 
         let lambdaResponse = await lambda.invoke(params).promise();
         console.log(lambdaResponse);
+    } else {
+        
+        return {
+            statusCode: 500,
+            body: JSON.stringify(`Unable to forward ${event}`),
+        };
     }
 
 };

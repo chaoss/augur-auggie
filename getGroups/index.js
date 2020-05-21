@@ -2,37 +2,32 @@ const {
     WebClient
 } = require('@slack/web-api');
 
-var AWS = require("aws-sdk");
+const AWS = require("aws-sdk");
 AWS.config.update({
     region: "us-east-1",
     endpoint: (process.env.ENVIRONMENT === "DEV") ? "http://localhost:8000" : null
 });
-let docClient = new AWS.DynamoDB.DocumentClient();
+const docClient = new AWS.DynamoDB.DocumentClient();
 
 const ERROR_RESPONSE = `Looks like you're not tracking any repo groups yet. You can add some at auggie.augurlabs.io`;
 
 async function getUser(slackClient, event) {
 
-    let lexID = event['userId'].split(':');
-    let teamID = lexID[1];
-    let userID = lexID[2];
+    const lexID = event['userId'].split(':');
+    const teamID = lexID[1];
+    const userID = lexID[2];
 
-    let userResponse = await slackClient.users.info({ "user": userID })
+    const userResponse = await slackClient.users.info({ "user": userID })
 
-    var params = {
+    const params = {
         TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": `${userResponse.user.profile.email}:${teamID}`
         }
     };
 
-    let response = await docClient.get(params).promise();
-
-    if (response.Item) {
-        return response.Item
-    } else {
-        return buildResponse("Oops, looks like you haven't setup your account yet. Head on over to auggie.augurlabs.io to get started!")
-    }
+    const response = await docClient.get(params).promise();
+    return response;
 }
 
 function buildResponse(message) {
@@ -64,22 +59,22 @@ async function updateBotToken(user, token) {
 }
 
 exports.handler = async (event) => {
-    console.log(event);
-    let slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
+    console.log(`Received Request from GetGroup Intent`);
 
-    let user = await getUser(slackClient, event);
-    await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
+    const slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
+    const userResponse = await getUser(slackClient, event);
 
-    if (user.dialogAction) {
-        return user;
-    } else {
-        let host = user.host;
-        let message = ``;
+    // If User exists in DynamoDB
+    if (userResponse.Item) {
+        const user = userResponse.Item;
 
-        if (!host || user.host == "null") {        
+        await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
+
+        if (!user.host || user.host == "null") {
             return buildResponse(ERROR_RESPONSE)
         }
 
+        let message = ``;
         for (group of user.interestedGroups) {
             message += `${group}\n`
         }
@@ -88,7 +83,8 @@ exports.handler = async (event) => {
             return buildResponse(ERROR_RESPONSE);
         }
 
-        const fullMessage = `Your current tracked repo groups are: \n${message} These can be updated at auggie.augurlabs.io`;
-        return buildResponse(fullMessage);
-    }
+        return buildResponse(`Your current tracked repo groups are: \n${message} These can be updated at auggie.augurlabs.io`);
+    } else {
+        return buildResponse(ERROR_RESPONSE);
+    }s
 };

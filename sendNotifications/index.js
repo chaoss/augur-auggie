@@ -2,12 +2,12 @@ const {
     WebClient
 } = require('@slack/web-api');
 
-var AWS = require("aws-sdk");
+const AWS = require("aws-sdk");
 AWS.config.update({
     region: "us-east-1",
     endpoint: (process.env.ENVIRONMENT === "DEV") ? "http://localhost:8000" : null
 });
-let docClient = new AWS.DynamoDB.DocumentClient();
+const docClient = new AWS.DynamoDB.DocumentClient();
 
 
 async function getAllUsers() {
@@ -33,7 +33,7 @@ async function getInsights() {
     let params = { TableName: process.env.QUEUE_TABLE_NAME };
 
     while (true) {
-        let response = await docClient.scan(params).promise();
+        const response = await docClient.scan(params).promise();
         insights = insights.concat(response.Items);
         if (response.LastEvaluatedKey) {
             params.ExclusiveStartKey = response.LastEvaluatedKey
@@ -52,26 +52,24 @@ function constructSentence(insight) {
     }
     
     // Percent Changed Construction
-    let value = insight.value + " " + insight.field;
-    let percentChange = (insight.value / insight.units_from_mean).toFixed(0);
+    const value = insight.value + " " + insight.field;
+    const percentChange = (insight.value / insight.units_from_mean).toFixed(0);
     
     // Days ago Construction
-    let anomalyDate = new Date(insight.date);
-    let currentDate = Date.now();
-    let difference = currentDate-anomalyDate;
-    var days = Math.floor(difference / (1000 * 3600 * 24));
-    let timePeriod = `${days} days ago`
+    const daysAgo = Date.now() - new Date(insight.date);
+    const days = Math.floor(daysAgo / (1000 * 3600 * 24));
+    const timePeriod = `${days} days ago`
 
     // Positive or Negative Change
-    let changeWord = (value > 0) ? "decrease" : "increase";
+    const changeWord = (value > 0) ? "decrease" : "increase";
     let rgWord = ``;
     if (insight.rg_name) {
         rgWord = `(${insight.rg_name})`;
     }
 
-    let insightSentence = `There were ${value} on ${insight.repo_git} ${rgWord} ${timePeriod}. `;
-    let justificationSentence = `\nThat represents a ${percentChange * 100}% ${changeWord} from the mean!`;
-    let fullSentence = insightSentence + justificationSentence;
+    const insightSentence = `There were ${value} on ${insight.repo_git} ${rgWord} ${timePeriod}. `;
+    const justificationSentence = `\nThat represents a ${percentChange * 100}% ${changeWord} from the mean!`;
+    const fullSentence = insightSentence + justificationSentence;
 
     return fullSentence;
 }
@@ -81,13 +79,13 @@ async function checkIfInterested(user, insights) {
     let interestedInsights = [];
 
     for (insight of insights) {
-        let interestedRepos = user.interestedRepos;
-        let interestedRepoGroups = user.interestedGroups;
-        let interestedInsightTypes = user.interestedInsightTypes;
+        const interestedRepos = user.interestedRepos;
+        const interestedRepoGroups = user.interestedGroups;
+        const interestedInsightTypes = user.interestedInsightTypes;
         
-        if (interestedRepos.includes(`${insight.repo_git.substr(8)}`) /*|| interestedRepoGroups.includes(insight.rg_name)*/) {
+        if ((interestedRepos && interestedRepos.includes(`${insight.repo_git.substr(8)}`)) 
+        || (interestedRepoGroups && interestedRepoGroups.includes(insight.rg_name))) {
             if (interestedInsightTypes && interestedInsightTypes.includes(insight.metric)) {
-                console.log(`Interested Repos (${interestedRepos}) contains ${insight.repo_git}\nOR\nInterested RepoGroups (${interestedRepoGroups}) contains ${insight.rg_name}`);
                 interestedInsights.push(insight);
             }
         }
@@ -97,7 +95,7 @@ async function checkIfInterested(user, insights) {
 }
 
 async function updateCurrentMessages(user) {
-    let params = {
+    const params = {
         TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": user.email
@@ -111,23 +109,8 @@ async function updateCurrentMessages(user) {
     await docClient.update(params).promise();
 }
 
-async function updateThread(user, thread) {
-    let params = {
-        TableName: process.env.USERS_TABLE_NAME,
-        Key: {
-            "email": user.email
-        },
-        UpdateExpression: "set thread = :val",
-        ExpressionAttributeValues: {
-            ":val": thread
-        }
-    }
-
-    await docClient.update(params).promise();
-}
-
 async function storeMessage(insight, teamID, ts, channel, message) {
-    let params = {
+    const params = {
         TableName: process.env.MESSAGES_TABLE_NAME,
         Item: {
             "ts": ts,
@@ -144,62 +127,54 @@ async function storeMessage(insight, teamID, ts, channel, message) {
     console.log(result);
 }
 
-function compare(a, b) {
-    return a.units_from_mean - b.units_from_mean;
-}
-
-
 exports.handler = async (event) => {
-    console.log(JSON.stringify(event));
+    console.log(`Sending Notifications from Queue`);
 
-    let users = await getAllUsers();
-    console.log(`users from getAllUsers: ${JSON.stringify(users)}`);
-    let insights = await getInsights();
+    const users = await getAllUsers();
+    const insights = await getInsights();
     console.log(`insights from queue table: ${JSON.stringify(insights)}`);
-
-
 
     for (user of users) {
         let interestedInsights = await checkIfInterested(user, insights);
-        interestedInsights.sort(compare)
+        interestedInsights.sort(function (a, b) {
+            return a.units_from_mean - b.units_from_mean;
+        });
         interestedInsights = interestedInsights.slice(0, user.maxMessages - user.currentMessages);
-
 
         let userThread;
         let first = true;
+        const slackClient = new WebClient(user.botToken);
+
         for (insight of interestedInsights) {
-            console.log(JSON.stringify(insight));
-            let slackClient = new WebClient(user.botToken);
             await updateCurrentMessages(user);
 
-            let channelResponse = await slackClient.conversations.open({
+            const channelResponse = await slackClient.conversations.open({
                 users: user.userID
             });
-            console.log(JSON.stringify(insight));
-            let message = constructSentence(insight);
+
+            const message = constructSentence(insight);
 
             if (first) {
                 first = false;
                 console.log("Creating Root Level Notification")
 
-                let messageResponse = await slackClient.chat.postMessage({
+                const messageResponse = await slackClient.chat.postMessage({
                     channel: channelResponse.channel.id,
                     text: "*New Augur Insights*"
                 });
 
-                console.log(JSON.stringify(messageResponse));
                 userThread = messageResponse.ts;
 
                 console.log("Creating Thread Level Notification")
-                let threadResponse = await slackClient.chat.postMessage({
+                const threadResponse = await slackClient.chat.postMessage({
                     channel: channelResponse.channel.id,
                     thread_ts: messageResponse.ts,
                     text: message
                 });
-                await storeMessage(insight, threadResponse.message.team, threadResponse.ts, channelResponse.channel.id, messsage);
+                await storeMessage(insight, threadResponse.message.team, threadResponse.ts, channelResponse.channel.id, message);
             } else {
                 console.log("Creating Thread Level Notification")
-                let threadResponse = await slackClient.chat.postMessage({
+                const threadResponse = await slackClient.chat.postMessage({
                     channel: channelResponse.channel.id,
                     thread_ts: userThread,
                     text: message
@@ -208,9 +183,5 @@ exports.handler = async (event) => {
             }
         }
     }
-
-    // WIPE QUEUE TABLE
-
-
 };
 

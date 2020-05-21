@@ -2,12 +2,12 @@ const {
     WebClient
 } = require('@slack/web-api');
 
-var AWS = require("aws-sdk");
+const AWS = require("aws-sdk");
 AWS.config.update({
     region: "us-east-1",
     endpoint: (process.env.ENVIRONMENT === "DEV") ? "http://localhost:8000" : null
 });
-let docClient = new AWS.DynamoDB.DocumentClient();
+const docClient = new AWS.DynamoDB.DocumentClient();
 
 async function getToken(teamID) {
 
@@ -30,12 +30,10 @@ async function getToken(teamID) {
             return user.botToken;
         }
     }
-
-    return null;  
 }
 
 async function addReaction(teamID, ts, reaction) {
-    let params = {
+    const params = {
         TableName: process.env.MESSAGES_TABLE_NAME,
         Key: {
             "teamID": teamID,
@@ -52,8 +50,7 @@ async function addReaction(teamID, ts, reaction) {
 }
 
 async function storeMessage(insight, teamID, ts, channel, reaction, message) {
-    console.log("storing message");
-    let params = {
+    const params = {
         TableName: process.env.MESSAGES_TABLE_NAME,
         Key: {
             "teamID": teamID,
@@ -76,15 +73,18 @@ async function storeMessage(insight, teamID, ts, channel, reaction, message) {
     }
 
     const result = await docClient.update(params).promise()
-    console.log(result);
 }
 
 
 exports.handler = async (event) => {
-    console.log(event);
+    console.log(`Received Reaction: ${event}`);
     const slackEvent = event.event;
 
     const token = await getToken(event["team_id"]);
+    if (!token) {
+        console.log("Slack Token does not exist");
+        return { statusCode: 500, body: JSON.stringify("Slack Token does not exist in DynamoDB.") };
+    }
     const slackClient = new WebClient(token);
 
     const slackResponse = await slackClient.conversations.replies({
@@ -93,27 +93,20 @@ exports.handler = async (event) => {
     });
 
     const reactedMessage = slackResponse.messages[0];
-    console.log(reactedMessage);
 
     if (!reactedMessage["bot_profile"]["app_id"] || reactedMessage["bot_profile"]["app_id"] != "ASQKB8JT0") {
         console.log("Reacted Message was not from Auggie.");
-        return;
+        return {statusCode: 406, body: JSON.stringify("Reacted Message was not from Auggie.")};
     }
 
     if (!reactedMessage.text.startsWith("There were ")) {
         console.log("Not Insight Message, creating new object.")
         await storeMessage({}, event["team_id"], slackEvent.item.ts, slackEvent.item.channel, slackEvent.reaction, reactedMessage.text );
-        return;
+        return { statusCode: 200, body: JSON.stringify(`Received Reaction Notification: ${slackEvent.reaction} on message \n${slackEvent.item}`) };
     }
 
     console.log(`Received Reaction Notification: ${slackEvent.reaction} on message \n${JSON.stringify(slackEvent.item)}`);
-
     await addReaction(event.team_id, slackEvent.item.ts, slackEvent.reaction);
 
-
-    const response = {
-        statusCode: 200,
-        body: `Received Reaction Notification: ${slackEvent.reaction} on message \n${slackEvent.item}`,
-    };
-    return response;
+    return { statusCode: 200, body: JSON.stringify(`Received Reaction Notification: ${slackEvent.reaction} on message \n${slackEvent.item}`) };
 };

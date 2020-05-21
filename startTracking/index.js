@@ -2,37 +2,31 @@ const {
     WebClient
 } = require('@slack/web-api');
 
-var AWS = require("aws-sdk");
+const AWS = require("aws-sdk");
 AWS.config.update({
     region: "us-east-1",
     endpoint: (process.env.ENVIRONMENT === "DEV") ? "http://localhost:8000" : null
 });
-let docClient = new AWS.DynamoDB.DocumentClient();
+const docClient = new AWS.DynamoDB.DocumentClient();
 
-
+const ERROR_RESPONSE = `Looks like you haven't setup your account yet. Head back to the configure site to make sure you're all setup.`;
 async function getUser(slackClient, event) {
 
-    let lexID = event['userId'].split(':');
-    let teamID = lexID[1];
-    let userID = lexID[2];
+    const lexID = event['userId'].split(':');
+    const teamID = lexID[1];
+    const userID = lexID[2];
 
-    let userResponse = await slackClient.users.info({ "user": userID })
+    const userResponse = await slackClient.users.info({ "user": userID })
 
-    var params = {
+    const params = {
         TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": `${userResponse.user.profile.email}:${teamID}`
         }
     };
 
-    let response = await docClient.get(params).promise();
-
-    if (response.Item) {
-        return response.Item
-    } else {
-        return buildResponse(`Looks like you haven't setup your account yet. Head back to the configure site to make sure you're all setup.`);
-        
-    }
+    const response = await docClient.get(params).promise();
+    return response;
 }
 
 function buildResponse(message) {
@@ -49,7 +43,7 @@ function buildResponse(message) {
 }
 
 async function updateBotToken(user, token) {
-    let params = {
+    const params = {
         TableName: process.env.USERS_TABLE_NAME,
         Key: {
             "email": user.email
@@ -64,12 +58,18 @@ async function updateBotToken(user, token) {
 }
 
 exports.handler = async (event) => {
-    console.log(event);
-    let slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
-    console.log(event['requestAttributes'])
-    let user = await getUser(slackClient, event);
-    await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
+    console.log(`Received Request from startTracking Intent`);
+    const slackClient = new WebClient(event['requestAttributes']['x-amz-lex:slack-bot-token']);
 
-    const fullMessage = `You are now tracking repositories!`;
-    return buildResponse(fullMessage);
+    const userResponse = await getUser(slackClient, event);
+    if (userResponse.Item) {
+        const user = userResponse.Item;
+        await updateBotToken(user, event['requestAttributes']['x-amz-lex:slack-bot-token']);
+
+        return buildResponse(`You are now tracking repositories! Head back over to auggie.augurlabs.io to configure your setup further.`);
+
+    } else {
+        return buildResponse(ERROR_RESPONSE);
+    }
+    
 };
