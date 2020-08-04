@@ -1,9 +1,9 @@
 # auggie
-Auggie enables slack notifications for anomolous repository changes, for repositories a user selects from their own instance of Augur (or one we create for you). You can even limit your notifications per day to the top "n" most anomalous stastical outliers. The training period and days for anomaly detection are all configurable in your Augur instance. Don't want to install Auggie yourself? No problem! We provide a public instance that will work against any Augur instance [or continuously running local instance] with a public IP or subdomain/doman on this site: http://auggie.augurlabs.io/#/configure. All you need is a Slack Account. 
+Auggie enables slack notifications for anomolous repository changes detected by [Augur](http://augurlabs.io), a [CHAOSS](https://chaoss.community) project, for repositories a user selects from their own instance of Augur (or one we create for you). You can even limit your notifications per day to the top "n" most anomalous stastical outliers. The training period and days for anomaly detection are all configurable in your Augur instance. Don't want to install Auggie yourself? No problem! We provide a public instance that will work against any Augur instance [or continuously running local instance] with a public IP or subdomain/doman on this site: http://auggie.augurlabs.io/#/configure. All you need is a Slack Account. 
 
 NOTE: Slack restricts notification to private messages. 
 
-Auggie implementation utilizing Amazon Lex to classify messages. 
+## Auggie implementation utilizing Amazon Lex to classify messages. 
   
 Each directory represents an individual lambda function and is either an _intent_ as classified and delivered by Amazon Lex, or a function triggered by a source that is not Slack.
 
@@ -39,19 +39,24 @@ Follow the prompted steps, entering your Access ID and Secret Key. Set your defa
 
 ## Getting Started
 To begin development on Auggie, clone the repo onto your machine.
+
 ```
 git clone https://github.com/augurlabs/auggie.git
 ```
+
 The format of the project is relatively simple. Each directory (getGroups, getRepos, etc.) represents a single Lambda Function. Subsequently, each Lambda Function represents a single Lex Intent. 
 
 Changes made in these functions generally encompass updating how Auggie responds to specific intents and how Auggie gets that information from DynamoDB.
 
 In order to upload your changes and have them take effect on AWS, you will need to create short shell script for each directory (and optionally, one script in the root directory that combines all of the nested scripts). Below is an example of what this should look like.
+
 #### Short Script
 ```
 zip -r lambda.zip . && aws lambda update-function-code --function-name {LAMBDA_ARN} --zip-file fileb://lambda.zip --profile augur --region us-east-1
 ```
+
 #### Root Level Script
+
 ```
 cd getGroups && \
 zip -r lambda.zip . && aws lambda update-function-code --function-name {LAMBDA_ARN} --zip-file fileb://lambda.zip --profile augur --region us-east-1 \
@@ -80,6 +85,7 @@ Amazon Lex handles two major parts of Auggie's flow. Intent analysis and Distrib
 Each intent is defined by the list of Sample Utterances included in its console page. These utterances are what Lex searches for in order to categorize a message. This is not a strict list, but is used by Lex to capture all similar messages. 
 
 Once a message is categorized to an Intent, Lex will either respond directly (such as in the case of the `Greeting` intent) or trigger a lambda function (such as in the `GetRepos` intent).
+
 ## Slack Console
 The slack console (api.slack.com/apps) allows you to configure Auggie's permissions, distribution, event subscriptions, and display information.
 
@@ -99,33 +105,5 @@ Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://j
 ### Markdown
 
 Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/chaoss/augur-auggie/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
 
 *Copyright Jonah Zukosky and the University of Missouri*
