@@ -27,7 +27,7 @@ Follow the prompted steps, entering your Access ID and Secret Key. Set your defa
 ## Getting Started
 To begin development on Auggie, clone the repo onto your machine.
 ```
-git clone https://github.com/augurlabs/auggie.git
+git clone https://github.com/chaoss/augur-auggie.git
 ```
 The format of the project is relatively simple. Each directory (getGroups, getRepos, etc.) represents a single Lambda Function. Subsequently, each Lambda Function represents a single Lex Intent. 
 
