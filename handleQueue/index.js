@@ -13,7 +13,7 @@ const lambda = new AWS.Lambda();
 
 async function getAllUsers() {
     let users = [];
-    let params = { TableName: process.env.TABLE_NAME };
+    let params = { TableName: process.env.USERS_TABLE_NAME };
 
     while (true) {
         let response = await docClient.scan(params).promise();
@@ -34,7 +34,7 @@ async function clearUserSettings() {
 
     for (user of users) {
         let params = {
-            TableName: process.env.TABLE_NAME,
+            TableName: process.env.USERS_TABLE_NAME,
             Key: {
                 "email": user.email
             },
@@ -55,9 +55,14 @@ async function writeEvent(event) {
     const secondsSinceEpoch = Math.round(Date.now() / 1000);
     const expirationTime = secondsSinceEpoch + 24 * SECONDS_IN_AN_HOUR;
 
+    if (!event.messages_insight) {
+        event.messages_insight = false;
+    }
+
     const params = {
-        TableName: process.env.TABLE_NAME,
+        TableName: process.env.QUEUE_TABLE_NAME,
         Item: {
+            "messages_insight": event.messages_insight,
             "repo_git": event.repo_git,
             "value": event.value,
             "date": event.date,
@@ -74,7 +79,7 @@ async function writeEvent(event) {
     console.log(result);
 }
 
-async function triggerPosts() {
+async function triggerPosts(event) {
     const params = {
         FunctionName: 'auggie-post-insights',
         Payload: JSON.stringify(event)
@@ -90,7 +95,7 @@ exports.handler = async (event) => {
         console.log("Clearing User Settings");
         await clearUserSettings();
         console.log("Triggering New Notifications");
-        await triggerPosts();
+        await triggerPosts(event);
     } else {
         console.log("Insight Event Received");
         console.log(JSON.stringify(event));

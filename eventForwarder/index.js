@@ -23,6 +23,27 @@ exports.handler = async (event) => {
         const response = await rp(options);
 
         return response;
+    } else if (event.type == "block_actions" || event.type == "view_submission") {
+        // Interaction Event
+        var params = {
+            FunctionName: 'auggie-reaction-handler',
+            Payload: JSON.stringify(event)
+        };
+
+        let lambdaResponse = await lambda.invoke(params).promise();
+        console.log(lambdaResponse);
+
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "body": ""
+        }
+        return {
+            statusCode: 200,
+            body: JSON.stringify(`Forwarded ${event} to Reaction Handler`),
+        };
     } else if (event.event.type == "message") {
         // Slack Message: Forward to Lex for handling.
         const options = {
@@ -33,6 +54,11 @@ exports.handler = async (event) => {
         };
 
         await rp(options);
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify(`Forwarded ${event} to Lex`),
+        };
     } else if (event.event.type == "reaction_added") {
         // Reaction Added: Forward to Reaction Handler
 
@@ -43,8 +69,13 @@ exports.handler = async (event) => {
 
         let lambdaResponse = await lambda.invoke(params).promise();
         console.log(lambdaResponse);
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify(`Forwarded ${event} to Reaction Handler`),
+        };
     } else {
-        
+
         return {
             statusCode: 500,
             body: JSON.stringify(`Unable to forward ${event}`),
