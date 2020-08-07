@@ -47,6 +47,7 @@ async function getInsights() {
 }
 
 function constructSentence(insight) {
+    
     if (insight.field === "added" || insight.field === "removed") {
         insight.field = "lines " + insight.field;
     }
@@ -130,6 +131,9 @@ async function storeMessage(insight, teamID, ts, channel, message) {
 exports.handler = async (event) => {
     console.log(`Sending Notifications from Queue`);
 
+    if (event.detail.sourceARN == "arn:aws:events:us-east-1:087468321421:rule/monthly") {
+        console.log(" Monthly Event ");
+    }
     const users = await getAllUsers();
     const insights = await getInsights();
     console.log(`insights from queue table: ${JSON.stringify(insights)}`);
