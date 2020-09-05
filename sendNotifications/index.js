@@ -46,31 +46,68 @@ async function getInsights() {
     return insights;
 }
 
+// A helper to get change word in sentences
+function changeWord(value)
+{
+    if(value > 0) return "increase";
+    return "decrease";
+}
+
 function constructSentence(insight) {
     
-    if (insight.field === "added" || insight.field === "removed") {
-        insight.field = "lines " + insight.field;
-    }
-    
-    // Percent Changed Construction
-    const value = insight.value + " " + insight.field;
-    const percentChange = (insight.value / insight.units_from_mean).toFixed(0);
-    
-    // Days ago Construction
-    const daysAgo = Date.now() - new Date(insight.date);
-    const days = Math.floor(daysAgo / (1000 * 3600 * 24));
-    const timePeriod = `${days} days ago`
+    var fullSentence = "";
 
-    // Positive or Negative Change
-    const changeWord = (value > 0) ? "decrease" : "increase";
-    let rgWord = ``;
-    if (insight.rg_name) {
-        rgWord = `(${insight.rg_name})`;
+    if(insight.message_insight)
+    {
+        // Testing received values
+
+        /*
+        console.log(insight.positive_sentiment_count)
+        console.log(insight.negative_sentiment_count)
+        console.log(insight.novel_count)
+        console.log(insight.sentiment_anomaly_timestamps)
+        */
+        
+        duration_sentence = `Messages insight report on ${insight.repo_git} beginning from ${insight.insight_begin_date}: \n`;
+        senti_sentence = `${insight.negative_sentiment_count} messages had negative sentiment and ${insight.positive_sentiment_count} had positive sentiment!`;
+        dev_sentence = `\nNegative sentiment count showed a deviation ${insight.negative_shift}% ${changeWord(insight.negative_shift)} from the mean!`
+        novelty_sentence = `\n${insight.novel_count} messages were found to be novel indicating a ${novelty_shift}% ${changeWord(insight.novelty_shift)} from the mean!`;
+        
+        anomaly_sentence = "";
+        if(insight.sentiment_anomaly_timestamps)
+        {
+            anomaly_sentence = `\nAnomalies were found in the sentiment of messages on ${sentiment_anomaly_timestamps}`;
+        }
+
+        fullSentence = duration_sentence + senti_sentence + dev_sentence + novelty_sentence + anomaly_sentence;
     }
 
-    const insightSentence = `There were ${value} on ${insight.repo_git} ${rgWord} ${timePeriod}. `;
-    const justificationSentence = `\nThat represents a ${percentChange * 100}% ${changeWord} from the mean!`;
-    const fullSentence = insightSentence + justificationSentence;
+    else
+    {
+        if (insight.field === "added" || insight.field === "removed") {
+            insight.field = "lines " + insight.field;
+        }
+        
+        // Percent Changed Construction
+        const value = insight.value + " " + insight.field;
+        const percentChange = (insight.value / insight.units_from_mean).toFixed(0);
+        
+        // Days ago Construction
+        const daysAgo = Date.now() - new Date(insight.date);
+        const days = Math.floor(daysAgo / (1000 * 3600 * 24));
+        const timePeriod = `${days} days ago`
+
+        // Positive or Negative Change
+        // const changeWord = (value > 0) ? "decrease" : "increase";
+        let rgWord = ``;
+        if (insight.rg_name) {
+            rgWord = `(${insight.rg_name})`;
+        }
+
+        const insightSentence = `There were ${value} on ${insight.repo_git} ${rgWord} ${timePeriod}. `;
+        const justificationSentence = `\nThat represents a ${percentChange * 100}% ${changeWord(-(value))} from the mean!`;
+        fullSentence = insightSentence + justificationSentence;
+    }
 
     return fullSentence;
 }
