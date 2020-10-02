@@ -53,27 +53,49 @@ async function writeEvent(event) {
 
     const SECONDS_IN_AN_HOUR = 60 * 60;
     const secondsSinceEpoch = Math.round(Date.now() / 1000);
-    const expirationTime = secondsSinceEpoch + 24 * SECONDS_IN_AN_HOUR;
 
-    if (!event.messages_insight) {
+    if (event.insight) {
+        // 1 day
+        var expirationTime = secondsSinceEpoch + 24 * SECONDS_IN_AN_HOUR;
         event.messages_insight = false;
+        var params = {
+            TableName: process.env.QUEUE_TABLE_NAME,
+            Item: {
+                "insight": event.insight,
+                "repo_git": event.repo_git,
+                "value": event.value,
+                "date": event.date,
+                "field": event.field,
+                "metric": event.metric,
+                "units_from_mean": event.units_from_mean,
+                "detection_method": event.detection_method,
+                ttl: expirationTime
+            }
+        }
+
     }
 
-    const params = {
-        TableName: process.env.QUEUE_TABLE_NAME,
-        Item: {
-            "messages_insight": event.messages_insight,
-            "repo_git": event.repo_git,
-            "value": event.value,
-            "date": event.date,
-            "field": event.field,
-            "metric": event.metric,
-            "units_from_mean": event.units_from_mean,
-            "detection_method": event.detection_method,
-            ttl: expirationTime
+    else if (event.messages_insight) {
+        // 30 days
+        var expirationTime = secondsSinceEpoch + 30 * 24 * SECONDS_IN_AN_HOUR;
+        var params = {
+            TableName: process.env.QUEUE_TABLE_NAME,
+            Item: {
+                "messages_insight": event.messages_insight,
+                "repo_git": event.repo_git,
+                "insight_begin_date": event.insight_begin_date,
+                "positive_sentiment_count": event.sentiment["Positive"],
+                "negative_sentiment_count": event.sentiment["Negative"],
+                "novel_count": event.novelty["Novel"],
+                //"normal_count": event.novelty["Normal"],
+                //"positive_shift": event.recent_deviation["Positive"],
+                "negative_shift": event.recent_deviation["Negative"],
+                "novelty_shift": event.recent_deviation["Novel"],
+                "sentiment_anomaly_timestamps": event.sentiment_anomaly_timestamps,
+                ttl: expirationTime
+            }
         }
     }
-
 
     const result = await docClient.put(params).promise()
     console.log(result);
