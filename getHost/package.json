@@ -10,6 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "@slack/web-api": "^5.6.0",
-    "aws-sdk": "^2.603.0"
+    "aws-sdk": "^2.814.0"
   }
 }
